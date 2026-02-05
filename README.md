@@ -9,7 +9,7 @@
 <p align="center">
   <b>
     <i>
-      Building and managing Monad nodes and tooling with speed and determinism.
+      Read-only diagnostic tools for inspecting the health and correctness of Monad nodes.
     </i>
   </b>
 </p>
