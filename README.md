@@ -8,36 +8,63 @@
 
 <p align="center">
   <b>
-    <i style="color:#2E2E2E;">
+    <i>
       Building and managing Monad nodes and tooling with speed and determinism.
     </i>
   </b>
 </p>
 
 ---
+
 # Monad Node Diagnostics
 
-A small collection of **safe, read-only diagnostic tools**
+A collection of **safe, read-only diagnostic tools**
 for inspecting the health and correctness of a running Monad node.
 
-These tools are intended for:
+These tools are designed for:
+
 - node operators
 - validators
 - infrastructure providers
+- monitoring and automation workflows
 
 They focus on **early detection of misconfiguration and failure conditions**
-without modifying node state.
+*before* issues surface at the consensus or RPC layer.
 
 ---
 
 ## Design Principles
 
-- Read-only by default  
-- Safe to run on live mainnet nodes  
-- Deterministic and idempotent  
-- No installation, staking, or consensus actions  
+- **Read-only by default**
+- **Safe to run on live mainnet nodes**
+- **Deterministic and idempotent**
+- **No installation, staking, signing, or consensus actions**
+- **Suitable for cron jobs, CI, and automated monitoring**
 
 All tools are designed to **fail fast** and provide actionable output.
+
+---
+
+## Relation to Official Monad Node Ops
+
+Official Monad documentation focuses on **operator-driven workflows**
+using CLI commands, systemd inspection, logs, and live RPC queries.
+
+This repository complements the official toolset by providing:
+
+- automated and scriptable diagnostics
+- early detection of infrastructure-level issues
+- pre-flight checks for node correctness
+- non-invasive validation suitable for continuous execution
+
+These tools **do not replace** official utilities such as `monlog`,
+`monad-status`, or `monad-ledger-tail`.
+
+Instead, they aim to catch problems **before**
+they become visible at the application or consensus level.
+
+Official documentation:
+- https://docs.monad.xyz/node-ops
 
 ---
 
@@ -48,11 +75,15 @@ All tools are designed to **fail fast** and provide actionable output.
 Performs a high-level health inspection of a running Monad node.
 
 #### Checks include
+
 - required Monad systemd services are running
-- consensus P2P port is listening (default: 8000)
+- consensus P2P port is listening (default: `8000`)
 - optional RPC endpoint reachability (if `RPC_ENDPOINT` is set)
 - local system clock drift
 - disk space availability
+
+This tool does **not** assume statesync completion
+and does **not** require RPC availability.
 
 #### Usage
 ```bash
@@ -63,32 +94,64 @@ Performs a high-level health inspection of a running Monad node.
 
 Validates the presence and consistency of local keystores.
 
-Checks include:
+#### Checks include:
 - SECP and BLS keystore existence
-- file permissions
+- file ownership and permissions
 - basic structural integrity
 - mismatch between expected and discovered keys
 
-This tool does not expose or export private key material.
+This tool does not:
+- export private key material
+- derive keys
+- perform signing
+- verify on-chain validator identity
+
+It only validates local keystore correctness and safety.
 
 ### 🧠 `sync-state-inspector.sh`
 
-Inspects node synchronization state.
+Inspects the synchronization state of a Monad node.
 
-Reports:
+#### Reports:
 - current block height
 - peer connectivity indicators
 - sync stagnation detection
 - common stuck-state patterns
 
+Designed to detect silent sync failures
+before RPC or consensus degradation becomes visible.
+
 ### 💾 `triedb-sanity-check.sh`
 
 Performs non-destructive checks against the TrieDB device.
 
-Checks include:
+#### Checks include:
 - correct device mapping (/dev/triedb)
 - block device properties
 - LBA size validation
 - basic read latency sampling
 
 No data is written to disk.
+
+This tool is **complementary** to:
+```bash
+monad-mpt --storage /dev/triedb
+```
+It focuses on **OS-level and block-device correctness**,
+not internal MPT metadata.
+
+## Related Official Tools
+
+For live consensus and application-level diagnostics,
+refer to official Monad tooling:
+- `monlog` — BFT log analysis and health suggestions
+- `monad-status` — comprehensive node status overview
+- `monad-ledger-tail` — consensus ledger stream inspection
+
+This repository intentionally avoids:
+- parsing consensus logs
+- interacting with validator identity
+- querying mutable chain state
+
+Its scope is limited to **system, storage, service,
+and configuration sanity checks.**
