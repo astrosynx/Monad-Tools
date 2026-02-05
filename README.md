@@ -13,3 +13,82 @@
     </i>
   </b>
 </p>
+
+---
+# Monad Node Diagnostics
+
+A small collection of **safe, read-only diagnostic tools**
+for inspecting the health and correctness of a running Monad node.
+
+These tools are intended for:
+- node operators
+- validators
+- infrastructure providers
+
+They focus on **early detection of misconfiguration and failure conditions**
+without modifying node state.
+
+---
+
+## Design Principles
+
+- Read-only by default  
+- Safe to run on live mainnet nodes  
+- Deterministic and idempotent  
+- No installation, staking, or consensus actions  
+
+All tools are designed to **fail fast** and provide actionable output.
+
+---
+
+## Available Tools
+
+### 🔍 `node-health-check.sh`
+
+Performs a basic health inspection of a running node.
+
+Checks include:
+- required Monad services are running
+- RPC endpoints are reachable
+- block height is advancing
+- local clock drift
+- disk space and I/O saturation indicators
+
+**Usage:**
+```bash
+./node-health-check.sh
+```
+
+### 🔑  `keystore-integrity-check.sh`
+
+Validates the presence and consistency of local keystores.
+
+Checks include:
+- SECP and BLS keystore existence
+- file permissions
+- basic structural integrity
+- mismatch between expected and discovered keys
+
+This tool does not expose or export private key material.
+
+### 🧠 `sync-state-inspector.sh`
+
+Inspects node synchronization state.
+
+Reports:
+- current block height
+- peer connectivity indicators
+- sync stagnation detection
+- common stuck-state patterns
+
+### 💾 `triedb-sanity-check.sh`
+
+Performs non-destructive checks against the TrieDB device.
+
+Checks include:
+- correct device mapping (/dev/triedb)
+- block device properties
+- LBA size validation
+- basic read latency sampling
+
+No data is written to disk.
