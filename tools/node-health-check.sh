@@ -5,21 +5,22 @@ set -euo pipefail
 # Configuration (explicit)
 # ----------------------------
 
-# RPC endpoint MUST be provided explicitly if RPC checks are desired
 RPC_ENDPOINT="${RPC_ENDPOINT:-}"
 
-# Consensus / P2P port (per official docs)
 P2P_PORT="${P2P_PORT:-8000}"
 
-# Services expected to be running
-SERVICES=(
+CORE_SERVICES=(
   monad-bft
   monad-execution
+)
+
+OPTIONAL_SERVICES=(
   monad-rpc
 )
 
 MAX_CLOCK_DRIFT=5    # seconds
 MIN_DISK_FREE=10     # percent
+DISK_PATH="${DISK_PATH:-/}"
 
 echo "== Monad Node Health Check =="
 echo
@@ -29,12 +30,21 @@ echo
 # ----------------------------
 
 echo "[+] Checking systemd services"
-for svc in "${SERVICES[@]}"; do
+
+for svc in "${CORE_SERVICES[@]}"; do
   if systemctl is-active --quiet "$svc"; then
     echo "  ✓ $svc is running"
   else
     echo "  ✗ $svc is NOT running"
     exit 1
+  fi
+done
+
+for svc in "${OPTIONAL_SERVICES[@]}"; do
+  if systemctl is-active --quiet "$svc"; then
+    echo "  ✓ $svc is running"
+  else
+    echo "  ! $svc is not running (optional)"
   fi
 done
 
@@ -45,7 +55,7 @@ done
 echo
 echo "[+] Checking consensus P2P port ($P2P_PORT)"
 
-if ss -ltn | awk '{print $4}' | grep -q ":$P2P_PORT$"; then
+if ss -ltnH | awk '{print $4}' | grep -Eq "(:|\])$P2P_PORT$"; then
   echo "  ✓ P2P port $P2P_PORT is listening"
 else
   echo "  ✗ P2P port $P2P_PORT is not listening"
@@ -80,7 +90,7 @@ echo
 echo "[+] Checking clock drift"
 
 if command -v chronyc >/dev/null 2>&1; then
-  DRIFT=$(chronyc tracking | awk '/Last offset/ {print int($3)}')
+  DRIFT=$(chronyc tracking | awk -F': ' '/Last offset/ {print int($2)}')
   if [[ "${DRIFT#-}" -le "$MAX_CLOCK_DRIFT" ]]; then
     echo "  ✓ Clock drift within limits (${DRIFT}s)"
   else
@@ -96,9 +106,9 @@ fi
 # ----------------------------
 
 echo
-echo "[+] Checking disk space"
+echo "[+] Checking disk space ($DISK_PATH)"
 
-USED_PERCENT=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
+USED_PERCENT=$(df "$DISK_PATH" | awk 'NR==2 {print $5}' | tr -d '%')
 FREE_PERCENT=$((100 - USED_PERCENT))
 
 if [[ "$FREE_PERCENT" -ge "$MIN_DISK_FREE" ]]; then
@@ -110,3 +120,4 @@ fi
 
 echo
 echo "✓ Node health check passed"
+
