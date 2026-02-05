@@ -85,11 +85,6 @@ Performs a high-level health inspection of a running Monad node.
 This tool does **not** assume statesync completion
 and does **not** require RPC availability.
 
-#### Usage
-```bash
-./node-health-check.sh
-```
-
 ### 🔑  `keystore-integrity-check.sh`
 
 Validates the presence and consistency of local keystores.
@@ -139,6 +134,37 @@ monad-mpt --storage /dev/triedb
 ```
 It focuses on **OS-level and block-device correctness**,
 not internal MPT metadata.
+
+---
+
+## Quick Usage (One-Liners)
+
+All tools can be executed directly without cloning the repository.
+
+> ⚠️ These scripts are read-only, but always review remote scripts before execution.
+
+### Node Health Check
+```bash
+bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/node-health-check.sh)
+```
+
+### Keystore Integrity Check
+```bash
+bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/keystore-integrity-check.sh)
+```
+
+### Sync State Inspector
+```bash
+RPC_ENDPOINT=http://localhost:8080 \
+bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/sync-state-inspector.sh)
+```
+
+### TrieDB Sanity Check
+```bash
+bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/triedb-sanity-check.sh)
+```
+
+---
 
 ## Related Official Tools
 
