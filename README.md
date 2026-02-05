@@ -45,16 +45,16 @@ All tools are designed to **fail fast** and provide actionable output.
 
 ### 🔍 `node-health-check.sh`
 
-Performs a basic health inspection of a running node.
+Performs a high-level health inspection of a running Monad node.
 
-Checks include:
-- required Monad services are running
-- RPC endpoints are reachable
-- block height is advancing
-- local clock drift
-- disk space and I/O saturation indicators
+#### Checks include
+- required Monad systemd services are running
+- consensus P2P port is listening (default: 8000)
+- optional RPC endpoint reachability (if `RPC_ENDPOINT` is set)
+- local system clock drift
+- disk space availability
 
-**Usage:**
+#### Usage
 ```bash
 ./node-health-check.sh
 ```
