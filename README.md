@@ -184,7 +184,7 @@ and configuration sanity checks.**
 
   <p align="center">
   <i>Maintained with 💙 by <b>Astrosynx</b> — Validator Infrastructure & Tools</i><br>
-  <a href="https://astrosynx.com" target="_blank">🌐 astrosynx.com</a> •
+  <a href="https://astrosynx.org" target="_blank">🌐 astrosynx.org</a> •
   <a href="https://github.com/astrosynx" target="_blank">
     <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
          width="18"
