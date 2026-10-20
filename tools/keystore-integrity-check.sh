@@ -8,12 +8,11 @@ echo
 # Configuration
 # ----------------------------
 
-KEYSTORE_BASE="${KEYSTORE_BASE:-/var/lib/monad/keystore}"
-
-SECP_KEY_PATTERN="secp"
-BLS_KEY_PATTERN="bls"
-
-EXPECTED_KEYS=2
+# Default layout from the official Monad node installation guide
+KEYSTORE_BASE="${KEYSTORE_BASE:-/home/monad/monad-bft/config}"
+SECP_KEYSTORE="${SECP_KEYSTORE:-$KEYSTORE_BASE/id-secp}"
+BLS_KEYSTORE="${BLS_KEYSTORE:-$KEYSTORE_BASE/id-bls}"
+KEYSTORE_OWNER="${KEYSTORE_OWNER:-monad}"
 
 # ----------------------------
 # Keystore directory
@@ -23,58 +22,54 @@ echo "[+] Checking keystore directory"
 
 if [[ ! -d "$KEYSTORE_BASE" ]]; then
   echo "  ✗ Keystore directory not found: $KEYSTORE_BASE"
+  echo "    Set KEYSTORE_BASE if your node uses a different layout"
   exit 1
 fi
 
-echo "  ✓ Keystore directory exists"
+echo "  ✓ Keystore directory exists: $KEYSTORE_BASE"
 
 # ----------------------------
-# Key discovery
+# Key files
 # ----------------------------
 
 echo
-echo "[+] Discovering keystore files"
+echo "[+] Checking keystore files"
 
-SECP_KEYS=$(find "$KEYSTORE_BASE" -type f -iname "*$SECP_KEY_PATTERN*" 2>/dev/null || true)
-BLS_KEYS=$(find "$KEYSTORE_BASE" -type f -iname "*$BLS_KEY_PATTERN*" 2>/dev/null || true)
+FAILED=0
 
-SECP_COUNT=$(echo "$SECP_KEYS" | sed '/^$/d' | wc -l)
-BLS_COUNT=$(echo "$BLS_KEYS" | sed '/^$/d' | wc -l)
+for key in "$SECP_KEYSTORE" "$BLS_KEYSTORE"; do
+  name=$(basename "$key")
 
-if [[ "$SECP_COUNT" -eq 0 ]]; then
-  echo "  ✗ No SECP keystore found"
-  exit 1
-else
-  echo "  ✓ Found $SECP_COUNT SECP keystore(s)"
-fi
-
-if [[ "$BLS_COUNT" -eq 0 ]]; then
-  echo "  ✗ No BLS keystore found"
-  exit 1
-else
-  echo "  ✓ Found $BLS_COUNT BLS keystore(s)"
-fi
-
-# ----------------------------
-# Permissions
-# ----------------------------
-
-echo
-echo "[+] Checking file permissions"
-
-BAD_PERMS=0
-
-while read -r key; do
-  PERM=$(stat -c "%a" "$key")
-  if [[ "$PERM" -gt 600 ]]; then
-    echo "  ✗ Insecure permissions ($PERM): $key"
-    BAD_PERMS=1
-  else
-    echo "  ✓ Permissions OK ($PERM): $(basename "$key")"
+  if [[ ! -f "$key" ]]; then
+    echo "  ✗ Missing: $key"
+    FAILED=1
+    continue
   fi
-done <<< "$(echo -e "$SECP_KEYS\n$BLS_KEYS")"
 
-if [[ "$BAD_PERMS" -ne 0 ]]; then
+  if [[ ! -s "$key" ]]; then
+    echo "  ✗ Empty file: $key"
+    FAILED=1
+    continue
+  fi
+
+  echo "  ✓ Found $name ($(stat -c %s "$key") bytes)"
+
+  # Any group or other permission bit is too open for key material
+  PERM=$(stat -c "%a" "$key")
+  if (( 8#$PERM & 8#077 )); then
+    echo "  ✗ Insecure permissions ($PERM): $name  →  chmod 600 $key"
+    FAILED=1
+  else
+    echo "  ✓ Permissions OK ($PERM): $name"
+  fi
+
+  OWNER=$(stat -c "%U" "$key")
+  if [[ "$OWNER" != "$KEYSTORE_OWNER" ]]; then
+    echo "  ! Owned by '$OWNER', expected '$KEYSTORE_OWNER': $name"
+  fi
+done
+
+if [[ "$FAILED" -ne 0 ]]; then
   exit 1
 fi
 

@@ -1,198 +1,120 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:1A1A2E,50:6A5BFF,100:8B7CFF&height=180&section=header&text=Monad%20Tools&fontSize=46&fontAlignY=50&fontColor=FFFFFF" />
+<a href="https://astrosynx.org/tech">
+  <img src="./assets/banner.svg" width="100%" alt="Astrosynx Monad Tools: read-only diagnostics for Monad nodes">
+</a>
+
+<p>
+  <a href="https://astrosynx.org/"><img src="https://img.shields.io/badge/astrosynx.org-0b0e12?style=flat-square&logo=googlechrome&logoColor=00d892&labelColor=0b0e12" alt="Website"></a>
+  <a href="https://astrosynx.org/tech"><img src="https://img.shields.io/badge/Operator_hub-0b0e12?style=flat-square&logo=gnubash&logoColor=00d892&labelColor=0b0e12" alt="Operator hub"></a>
+  <a href="https://astrosynx.org/readiness/"><img src="https://img.shields.io/badge/Readiness_Kit-0b0e12?style=flat-square&logo=python&logoColor=00d892&labelColor=0b0e12" alt="Monad Readiness Kit"></a>
+  <a href="https://astrosynx.org/decentralization-monad"><img src="https://img.shields.io/badge/Network_Health-0b0e12?style=flat-square&logo=databricks&logoColor=00d892&labelColor=0b0e12" alt="Monad Network Health"></a>
 </p>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/astrosynx/Logo/main/monad.png" width="180" alt="Monad Logo"/>
-</p>
+Four small, read-only bash checks for a running Monad node. They look at the layers underneath consensus: systemd services, keystores, sync progress and the TrieDB drive. The goal is to catch a broken disk, a world-readable key or a silently stalled node before it shows up as missed blocks.
 
-<p align="center">
-  <b>
-    <i>
-      Read-only diagnostic tools for inspecting the health and correctness of Monad nodes.
-    </i>
-  </b>
-</p>
+They are written by [Astrosynx](https://github.com/astrosynx), a validator selected for the Monad Foundation Delegation Program, and run on our own mainnet and testnet nodes.
 
----
+**Contents:** [Tools](#tools) · [Run](#run) · [Configuration](#configuration) · [Automate](#automate) · [Scope](#scope)
 
-# Monad Node Diagnostics
+<br>
 
-A collection of **safe, read-only diagnostic tools**
-for inspecting the health and correctness of a running Monad node.
+## Tools
 
-These tools are designed for:
+| Script | What it checks | Fails when |
+|---|---|---|
+| [`node-health-check.sh`](./tools/node-health-check.sh) | `monad-bft` and `monad-execution` are active, and `monad-rpc` too if present. P2P port `8000` is listening. Optionally checks the RPC, which reports the chain ID: `143` mainnet, `10143` testnet. Also clock offset and free disk space. | A core service is down, the port is closed, the RPC gives no answer, the clock is off by more than 5 s, or free disk is under 10% |
+| [`keystore-integrity-check.sh`](./tools/keystore-integrity-check.sh) | `id-secp` and `id-bls` exist, are not empty, have no group or other permission bits, and are owned by `monad`. | A keystore is missing or empty, or readable by anyone except its owner |
+| [`sync-state-inspector.sh`](./tools/sync-state-inspector.sh) | Block height, `eth_syncing`, peer count, and whether the height has moved since the last run. | The RPC is down, or the height has not changed for 300 s or more |
+| [`triedb-sanity-check.sh`](./tools/triedb-sanity-check.sh) | `/dev/triedb` resolves to a block device, is not mounted, and uses **512-byte LBA**. It also takes a 1 MiB direct-I/O read sample. | The device is missing or mounted, the LBA is not 512 bytes, or the sample is slower than 50 ms |
 
-- node operators
-- validators
-- infrastructure providers
-- monitoring and automation workflows
+Every script exits **`0`** when all checks pass and **`1`** on the first failure. Lines marked `!` are warnings that do not change the exit code.
 
-They focus on **early detection of misconfiguration and failure conditions**
-*before* issues surface at the consensus or RPC layer.
+> [!NOTE]
+> **Nothing here writes to the node.** The scripts never sign or export keys, change config, or restart services. The TrieDB check only reads 1 MiB from the device with `dd`.
 
----
+<br>
 
-## Design Principles
+## Run
 
-- **Read-only by default**
-- **Safe to run on live mainnet nodes**
-- **Deterministic and idempotent**
-- **No installation, staking, signing, or consensus actions**
-- **Suitable for cron jobs, CI, and automated monitoring**
+Read any remote script before you run it. Each one is under 150 lines.
 
-All tools are designed to **fail fast** and provide actionable output.
-
----
-
-## Relation to Official Monad Node Ops
-
-Official Monad documentation focuses on **operator-driven workflows**
-using CLI commands, systemd inspection, logs, and live RPC queries.
-
-This repository complements the official toolset by providing:
-
-- automated and scriptable diagnostics
-- early detection of infrastructure-level issues
-- pre-flight checks for node correctness
-- non-invasive validation suitable for continuous execution
-
-These tools **do not replace** official utilities such as `monlog`,
-`monad-status`, or `monad-ledger-tail`.
-
-Instead, they aim to catch problems **before**
-they become visible at the application or consensus level.
-
-Official documentation:
-- https://docs.monad.xyz/node-ops
-
----
-
-## Available Tools
-
-### 🔍 `node-health-check.sh`
-
-Performs a high-level health inspection of a running Monad node.
-
-#### Checks include
-
-- required Monad systemd services are running
-- consensus P2P port is listening (default: `8000`)
-- optional RPC endpoint reachability (if `RPC_ENDPOINT` is set)
-- local system clock drift
-- disk space availability
-
-This tool does **not** assume statesync completion
-and does **not** require RPC availability.
-
-### 🔑  `keystore-integrity-check.sh`
-
-Validates the presence and consistency of local keystores.
-
-#### Checks include:
-- SECP and BLS keystore existence
-- file ownership and permissions
-- basic structural integrity
-- mismatch between expected and discovered keys
-
-This tool does not:
-- export private key material
-- derive keys
-- perform signing
-- verify on-chain validator identity
-
-It only validates local keystore correctness and safety.
-
-### 🧠 `sync-state-inspector.sh`
-
-Inspects the synchronization state of a Monad node.
-
-#### Reports:
-- current block height
-- peer connectivity indicators
-- sync stagnation detection
-- common stuck-state patterns
-
-Designed to detect silent sync failures
-before RPC or consensus degradation becomes visible.
-
-### 💾 `triedb-sanity-check.sh`
-
-Performs non-destructive checks against the TrieDB device.
-
-#### Checks include:
-- correct device mapping (/dev/triedb)
-- block device properties
-- LBA size validation
-- basic read latency sampling
-
-No data is written to disk.
-
-This tool is **complementary** to:
 ```bash
-monad-mpt --storage /dev/triedb
-```
-It focuses on **OS-level and block-device correctness**,
-not internal MPT metadata.
+git clone https://github.com/astrosynx/Monad-Tools.git && cd Monad-Tools
 
----
-
-## Quick Usage (One-Liners)
-
-All tools can be executed directly without cloning the repository.
-
-> ⚠️ These scripts are read-only, but always review remote scripts before execution.
-
-### Node Health Check
-```bash
-bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/node-health-check.sh)
+bash tools/node-health-check.sh
+RPC_ENDPOINT=http://127.0.0.1:8080 bash tools/node-health-check.sh
+sudo -u monad bash tools/keystore-integrity-check.sh
+RPC_ENDPOINT=http://127.0.0.1:8080 bash tools/sync-state-inspector.sh
+bash tools/triedb-sanity-check.sh
 ```
 
-### Keystore Integrity Check
+<details>
+<summary><b>One-liners without cloning</b></summary>
+<br>
+
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/keystore-integrity-check.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/node-health-check.sh)
+sudo -u monad bash <(curl -fsSL https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/keystore-integrity-check.sh)
+RPC_ENDPOINT=http://127.0.0.1:8080 bash <(curl -fsSL https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/sync-state-inspector.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/triedb-sanity-check.sh)
+```
+</details>
+
+**Requirements:** bash, systemd, `curl`, `iproute2` (`ss`), `util-linux` (`lsblk`, `blockdev`, `findmnt`). The sync inspector also needs `jq`. `chronyc` is optional and enables the clock check. The keystore check must run as `monad` or root to read `/home/monad`.
+
+<br>
+
+## Configuration
+
+Defaults follow the [official node installation guide](https://docs.monad.xyz/node-ops/full-node-installation). Override any of them with environment variables.
+
+| Variable | Default | Used by |
+|---|---|---|
+| `RPC_ENDPOINT` | unset, or `http://localhost:8080` in the sync inspector | node-health, sync-state |
+| `P2P_PORT` | `8000` | node-health |
+| `DISK_PATH` | `/` | node-health |
+| `KEYSTORE_BASE` | `/home/monad/monad-bft/config` | keystore |
+| `SECP_KEYSTORE` / `BLS_KEYSTORE` | `$KEYSTORE_BASE/id-secp` / `id-bls` | keystore |
+| `KEYSTORE_OWNER` | `monad` | keystore |
+| `STAGNATION_THRESHOLD` | `300` seconds | sync-state |
+| `STATE_FILE` | `/tmp/monad_last_block` | sync-state |
+| `TRIEDB_DEVICE` | `/dev/triedb` | triedb |
+| `EXPECTED_LBA` | `512` | triedb |
+| `MAX_READ_LATENCY_MS` | `50` | triedb |
+
+> [!WARNING]
+> If the TrieDB check reports the wrong LBA size, **do not reformat a live node.** Changing the LBA format erases the drive. Fix it during a planned rebuild, following the TrieDB section of the official guide.
+
+<br>
+
+## Automate
+
+The sync inspector keeps the last height it saw and the time that height **first** appeared. A stall is therefore detected whether the script runs every minute or every hour. A cron entry that logs only failures:
+
+```bash
+# /etc/cron.d/monad-checks
+*/5 * * * * monad RPC_ENDPOINT=http://127.0.0.1:8080 bash /opt/Monad-Tools/tools/sync-state-inspector.sh >/dev/null || logger -t monad-check "sync stalled"
+0 * * * *   monad bash /opt/Monad-Tools/tools/node-health-check.sh >/dev/null || logger -t monad-check "health check failed"
 ```
 
-### Sync State Inspector
-```bash
-RPC_ENDPOINT=http://localhost:8080 \
-bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/sync-state-inspector.sh)
-```
+The exit codes also work as a Prometheus textfile metric or as a gate in CI before an upgrade.
 
-### TrieDB Sanity Check
-```bash
-bash <(curl -s https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/tools/triedb-sanity-check.sh)
-```
+<br>
+
+## Scope
+
+These scripts check the **host**, not the protocol. For consensus and application-level diagnostics, use the official tools:
+
+| Official tool | Use it for |
+|---|---|
+| `monad-status` | Overall node status |
+| `monlog` | BFT log analysis and health suggestions |
+| `monad-ledger-tail` | Streaming the consensus ledger |
+| `monad-mpt --storage /dev/triedb` | Internal TrieDB metadata |
+
+Before a network upgrade, also run the **[Monad Validator Readiness Kit](https://astrosynx.org/readiness/)**. It checks your RPC, chain ID, sync status, block lag against a reference RPC, and upcoming hard-fork MIPs.
+
+<br>
 
 ---
 
-## Related Official Tools
-
-For live consensus and application-level diagnostics,
-refer to official Monad tooling:
-- `monlog` — BFT log analysis and health suggestions
-- `monad-status` — comprehensive node status overview
-- `monad-ledger-tail` — consensus ledger stream inspection
-
-This repository intentionally avoids:
-- parsing consensus logs
-- interacting with validator identity
-- querying mutable chain state
-
-Its scope is limited to **system, storage, service,
-and configuration sanity checks.**
-
-  <p align="center">
-  <i>Maintained with 💙 by <b>Astrosynx</b> — Validator Infrastructure & Tools</i><br>
-  <a href="https://astrosynx.org" target="_blank">🌐 astrosynx.org</a> •
-  <a href="https://github.com/astrosynx" target="_blank">
-    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
-         width="18"
-         style="vertical-align:middle; margin-right:4px;">
-    GitHub / Astrosynx
-  </a>
-</p>
-
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:1A1A2E,50:6A5BFF,100:8B7CFF&height=120&section=footer"/>
-</p>
+<sub>Maintained by <a href="https://github.com/astrosynx">Astrosynx</a> · <a href="https://astrosynx.org/">astrosynx.org</a> · <a href="https://astrosynx.org/tech">Operator hub</a> · <a href="https://docs.monad.xyz/node-ops">Monad node ops docs</a></sub>

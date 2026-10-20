@@ -71,12 +71,25 @@ if [[ -n "$RPC_ENDPOINT" ]]; then
   echo "[+] Checking RPC endpoint"
   echo "  Using RPC endpoint: $RPC_ENDPOINT"
 
-  if curl -sf "$RPC_ENDPOINT" >/dev/null; then
-    echo "  ✓ RPC reachable"
-  else
-    echo "  ✗ RPC not reachable"
+  # JSON-RPC answers POST requests; a plain GET can fail on a healthy node
+  CHAIN_ID_HEX=$(curl -sf -m 5 "$RPC_ENDPOINT" \
+    -X POST \
+    -H "Content-Type: application/json" \
+    --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+    | grep -o '"result":"0x[0-9a-fA-F]*"' | cut -d'"' -f4 || true)
+
+  if [[ -z "$CHAIN_ID_HEX" ]]; then
+    echo "  ✗ RPC not reachable or returned no chain ID"
     exit 1
   fi
+
+  CHAIN_ID=$((CHAIN_ID_HEX))
+  case "$CHAIN_ID" in
+    143)   NETWORK="mainnet" ;;
+    10143) NETWORK="testnet" ;;
+    *)     NETWORK="unknown network" ;;
+  esac
+  echo "  ✓ RPC reachable (chain ID $CHAIN_ID, $NETWORK)"
 else
   echo
   echo "[i] RPC check skipped (RPC_ENDPOINT not set)"
@@ -120,4 +133,3 @@ fi
 
 echo
 echo "✓ Node health check passed"
-
