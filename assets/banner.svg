@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-label="Astrosynx Monad Tools: read-only diagnostics for Monad nodes">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f4f5"/>
+      <stop offset="1" stop-color="#a9aaad"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .mono{font-family:ui-monospace,'IBM Plex Mono',SFMono-Regular,Consolas,monospace}
+    .sans{font-family:Inter,'Helvetica Neue','Segoe UI',Arial,sans-serif}
+    .rise{opacity:0;animation:rise .9s ease-out forwards}
+    .r1{animation-delay:.1s}.r2{animation-delay:.3s}.r3{animation-delay:.5s}
+    @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .ln{opacity:0;animation:ln 9s steps(1) infinite}
+    @keyframes ln{0%{opacity:0}8%{opacity:1}92%{opacity:1}100%{opacity:0}}
+    .cur{animation:cur 1s steps(1) infinite}
+    @keyframes cur{50%{opacity:0}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}.rise,.ln{opacity:1}}
+  </style>
+
+  <rect width="1200" height="360" fill="#0b0e12"/>
+
+  <!-- top bar -->
+  <g transform="translate(42 20)">
+    <g fill="#6c6d70">
+      <polygon points="6,2 12.5,2 20.3,28.5 13.8,28.5"/>
+      <polygon points="19,10 25.3,10 33,28.5 26.7,28.5"/>
+    </g>
+    <g fill="none" stroke="url(#mark)" stroke-width="6.3" stroke-linecap="round">
+      <line x1="3.6" y1="26.7" x2="6" y2="5.1"/>
+      <line x1="16.8" y1="26.7" x2="21" y2="12.9"/>
+      <line x1="30.9" y1="26.7" x2="33" y2="19.8"/>
+    </g>
+  </g>
+  <text class="mono" x="92" y="43" font-size="15" letter-spacing="3" fill="#dedede">ASTROSYNX</text>
+  <text class="mono" x="1160" y="42" text-anchor="end" font-size="11" letter-spacing="1.5" fill="#818284">SERVICES   KEYSTORES   SYNC   TRIEDB</text>
+  <line x1="0" y1="70.5" x2="1200" y2="70.5" stroke="#303235"/>
+
+  <!-- copy -->
+  <g class="rise r1">
+    <rect x="40" y="117" width="7" height="7" fill="#00d892"/>
+    <text class="mono" x="56" y="124" font-size="11.5" letter-spacing="1.8" fill="#bababb">READ-ONLY NODE DIAGNOSTICS · MAINNET &amp; TESTNET</text>
+  </g>
+  <g class="rise r2">
+    <image href="data:image/png;base64,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" x="40" y="150" width="54" height="54"/>
+    <text class="sans" x="110" y="196" font-size="56" font-weight="400" letter-spacing="-1.2" fill="#dedede">Monad Tools</text>
+  </g>
+  <g class="rise r3">
+    <text class="sans" x="40" y="252" font-size="16.5" fill="#818284">Four bash checks that catch service, keystore, sync and</text>
+    <text class="sans" x="40" y="276" font-size="16.5" fill="#818284">TrieDB problems before consensus or RPC notices them.</text>
+    <text class="mono" x="40" y="318" font-size="11.5" letter-spacing="1.6" fill="#818284">CHAIN ID  <tspan fill="#dedede">143</tspan>  ·  <tspan fill="#dedede">10143</tspan></text>
+  </g>
+
+  <!-- terminal -->
+  <g transform="translate(700 100)">
+    <rect x=".5" y=".5" width="459" height="219" fill="#181a1d" stroke="#303235"/>
+    <line x1="0" y1="34.5" x2="460" y2="34.5" stroke="#303235"/>
+    <g fill="#303235"><rect x="16" y="13" width="8" height="8"/><rect x="30" y="13" width="8" height="8"/><rect x="44" y="13" width="8" height="8"/></g>
+    <text class="mono" x="66" y="22" font-size="10" letter-spacing="1.4" fill="#818284">monad@validator</text>
+
+    <g class="mono" font-size="12.5">
+      <text x="18" y="62" fill="#dedede"><tspan fill="#818284">$</tspan> bash node-health-check.sh</text>
+      <text class="ln" x="18" y="88" fill="#bababb" style="animation-delay:.6s"><tspan fill="#00d892">✓</tspan> monad-bft is running</text>
+      <text class="ln" x="18" y="108" fill="#bababb" style="animation-delay:1.1s"><tspan fill="#00d892">✓</tspan> monad-execution is running</text>
+      <text class="ln" x="18" y="128" fill="#bababb" style="animation-delay:1.6s"><tspan fill="#00d892">✓</tspan> P2P port 8000 is listening</text>
+      <text class="ln" x="18" y="148" fill="#bababb" style="animation-delay:2.1s"><tspan fill="#00d892">✓</tspan> RPC reachable (chain ID 143, mainnet)</text>
+      <text class="ln" x="18" y="168" fill="#bababb" style="animation-delay:2.6s"><tspan fill="#00d892">✓</tspan> Disk space OK (41% free)</text>
+      <text class="ln" x="18" y="196" fill="#00d892" style="animation-delay:3.2s">✓ Node health check passed <tspan class="cur" fill="#dedede">▍</tspan></text>
+    </g>
+    <rect x="300" y="-12" width="146" height="26" fill="#0b0e12" stroke="#303235"/>
+    <rect x="312" y="-2" width="6" height="6" fill="#00d892"/>
+    <text class="mono" x="326" y="5" font-size="10.5" letter-spacing="1.4" fill="#dedede">EXIT 0 · PASS</text>
+  </g>
+
+  <rect x=".5" y=".5" width="1199" height="359" fill="none" stroke="#303235"/>
+</svg>
