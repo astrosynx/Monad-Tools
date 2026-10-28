@@ -117,4 +117,5 @@ Before a network upgrade, also run the **[Monad Validator Readiness Kit](https:/
 
 ---
 
-<sub>Maintained by <a href="https://github.com/astrosynx">Astrosynx</a> · <a href="https://astrosynx.org/">astrosynx.org</a> · <a href="https://astrosynx.org/tech">Operator hub</a> · <a href="https://docs.monad.xyz/node-ops">Monad node ops docs</a></sub>
+<sub>MIT licensed · <a href="./CHANGELOG.md">Changelog</a> · Maintained by <a href="https://github.com/astrosynx">Astrosynx</a> · <a href="https://astrosynx.org/">astrosynx.org</a> · <a href="https://astrosynx.org/tech">Operator hub</a> · <a href="https://docs.monad.xyz/node-ops">Monad node ops docs</a></sub>
+
