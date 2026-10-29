@@ -1,0 +1,17 @@
+name: shellcheck
+
+on:
+  push:
+    paths: ["tools/**", ".github/workflows/shellcheck.yml"]
+  pull_request:
+    paths: ["tools/**"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check
+        run: for f in tools/*.sh; do bash -n "$f"; done
+      - name: ShellCheck
+        run: shellcheck --severity=error tools/*.sh
