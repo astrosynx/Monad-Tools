@@ -9,7 +9,7 @@
   <a href="https://astrosynx.org/decentralization-monad"><img src="https://img.shields.io/badge/Network_Health-0b0e12?style=flat-square&logo=databricks&logoColor=00d892&labelColor=0b0e12" alt="Monad Network Health"></a>
 </p>
 
-Four small, read-only bash checks for a running Monad node. They look at the layers underneath consensus: systemd services, keystores, sync progress and the TrieDB drive. The goal is to catch a broken disk, a world-readable key or a silently stalled node before it shows up as missed blocks.
+Small, read-only bash checks for a running Monad node. They look at the layers underneath consensus: systemd services, keystores, sync progress and the TrieDB drive. The goal is to catch a broken disk, a world-readable key or a silently stalled node before it shows up as missed blocks. One more follows the operator side: verifying signed Monad Foundation announcements.
 
 They are written by [Astrosynx](https://github.com/astrosynx), a validator selected for the Monad Foundation Delegation Program, and run on our own mainnet and testnet nodes.
 
@@ -19,6 +19,8 @@ They are written by [Astrosynx](https://github.com/astrosynx), a validator selec
 
 ## Tools
 
+### Node checks
+
 | Script | What it checks | Fails when |
 |---|---|---|
 | [`node-health-check.sh`](./tools/node-health-check.sh) | `monad-bft` and `monad-execution` are active, and `monad-rpc` too if present. P2P port `8000` is listening. Optionally checks the RPC, which reports the chain ID: `143` mainnet, `10143` testnet. Also clock offset and free disk space. | A core service is down, the port is closed, the RPC gives no answer, the clock is off by more than 5 s, or free disk is under 10% |
@@ -26,16 +28,22 @@ They are written by [Astrosynx](https://github.com/astrosynx), a validator selec
 | [`sync-state-inspector.sh`](./tools/sync-state-inspector.sh) | Block height, `eth_syncing`, peer count, and whether the height has moved since the last run. | The RPC is down, or the height has not changed for 300 s or more |
 | [`triedb-sanity-check.sh`](./tools/triedb-sanity-check.sh) | `/dev/triedb` resolves to a block device, is not mounted, and uses **512-byte LBA**. It also takes a 1 MiB direct-I/O read sample. | The device is missing or mounted, the LBA is not 512 bytes, or the sample is slower than 50 ms |
 
-Every script exits **`0`** when all checks pass and **`1`** on the first failure. Lines marked `!` are warnings that do not change the exit code.
+### Operator checks
+
+| Script | What it checks | Fails when |
+|---|---|---|
+| [`verify-announcement.sh`](./tools/verify-announcement.sh) | A [Monad Foundation announcement](https://github.com/monad-crypto/mf-nodeops-comms/tree/main/announcements) (latest, or `#N`) against the signer fingerprints [published in the docs](https://docs.monad.xyz/node-ops/announcements). Uses a throwaway keyring. | Fewer than 2 valid signatures from active authorized signers |
+
+The node checks stop at the first failure. The announcement check runs every step and then exits **`1`** if it is not verified. All of them exit **`0`** when everything passes. Lines marked `!` are warnings that do not change the exit code.
 
 > [!NOTE]
-> **Nothing here writes to the node.** The scripts never sign or export keys, change config, or restart services. The TrieDB check only reads 1 MiB from the device with `dd`.
+> **Nothing here writes to the node.** The scripts never sign or export keys, change config, or restart services. The TrieDB check only reads 1 MiB from the device with `dd`. The announcement check imports keys into a temporary keyring that is deleted on exit.
 
 <br>
 
 ## Run
 
-Read any remote script before you run it. Each one is under 150 lines.
+Read any remote script before you run it. Each one is under 200 lines.
 
 ```bash
 git clone https://github.com/astrosynx/Monad-Tools.git && cd Monad-Tools
@@ -45,6 +53,8 @@ RPC_ENDPOINT=http://127.0.0.1:8080 bash tools/node-health-check.sh
 sudo -u monad bash tools/keystore-integrity-check.sh
 RPC_ENDPOINT=http://127.0.0.1:8080 bash tools/sync-state-inspector.sh
 bash tools/triedb-sanity-check.sh
+
+bash tools/verify-announcement.sh               # latest; or: bash tools/verify-announcement.sh 9
 ```
 
 <details>
@@ -59,7 +69,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/astrosynx/Monad-Tools/main/t
 ```
 </details>
 
-**Requirements:** bash, systemd, `curl`, `iproute2` (`ss`), `util-linux` (`lsblk`, `blockdev`, `findmnt`). The sync inspector also needs `jq`. `chronyc` is optional and enables the clock check. The keystore check must run as `monad` or root to read `/home/monad`.
+**Requirements:** bash, systemd, `curl`, `iproute2` (`ss`), `util-linux` (`lsblk`, `blockdev`, `findmnt`). The sync inspector also needs `jq`, and the announcement check needs `gpg` and `jq`. `chronyc` is optional and enables the clock check. The keystore check must run as `monad` or root to read `/home/monad`.
 
 <br>
 
@@ -80,6 +90,7 @@ Defaults follow the [official node installation guide](https://docs.monad.xyz/no
 | `TRIEDB_DEVICE` | `/dev/triedb` | triedb |
 | `EXPECTED_LBA` | `512` | triedb |
 | `MAX_READ_LATENCY_MS` | `50` | triedb |
+| `MIN_SIGNERS` | `2` | announcement |
 
 > [!WARNING]
 > If the TrieDB check reports the wrong LBA size, **do not reformat a live node.** Changing the LBA format erases the drive. Fix it during a planned rebuild, following the TrieDB section of the official guide.
@@ -118,4 +129,3 @@ Before a network upgrade, also run the **[Monad Validator Readiness Kit](https:/
 ---
 
 <sub>MIT licensed · <a href="./CHANGELOG.md">Changelog</a> · Maintained by <a href="https://github.com/astrosynx">Astrosynx</a> · <a href="https://astrosynx.org/">astrosynx.org</a> · <a href="https://astrosynx.org/tech">Operator hub</a> · <a href="https://docs.monad.xyz/node-ops">Monad node ops docs</a></sub>
-

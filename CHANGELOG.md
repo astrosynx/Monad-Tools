@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-09
+
+### Added
+
+- **verify-announcement:** verifies a [signed Monad Foundation announcement](https://github.com/monad-crypto/mf-nodeops-comms) in a throwaway keyring. Keys are imported only if their fingerprint is active in the [published list](https://docs.monad.xyz/node-ops/gpg-keys.json), and at least 2 authorized signatures are required.
+
 ## 2026-10-20
 
 Fixes that make the checks match the [official Monad node layout](https://docs.monad.xyz/node-ops/full-node-installation).
